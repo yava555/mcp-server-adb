@@ -21,6 +21,8 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { AdbClient } from "./adb/client.js";
 import { parseDeviceList, parseDeviceProps } from "./adb/utils.js";
+import { InputController } from "./tools/input.js";
+import { DeviceController } from "./tools/device.js";
 
 /**
  * Type alias for a note object.
@@ -38,6 +40,30 @@ const notes: { [id: string]: Note } = {
 
 // Initialize ADB client
 const adbClient = AdbClient.getInstance();
+
+// Create controllers map to store device-specific controllers
+const deviceControllers = new Map<string, DeviceController>();
+const inputControllers = new Map<string, InputController>();
+
+/**
+ * Get or create device controllers for a specific device
+ */
+function getDeviceControllers(serial: string) {
+  let deviceController = deviceControllers.get(serial);
+  let inputController = inputControllers.get(serial);
+
+  if (!deviceController) {
+    deviceController = new DeviceController(serial);
+    deviceControllers.set(serial, deviceController);
+  }
+
+  if (!inputController) {
+    inputController = new InputController(serial);
+    inputControllers.set(serial, inputController);
+  }
+
+  return { deviceController, inputController };
+}
 
 /**
  * Create an MCP server with capabilities for resources (to list/read notes),
@@ -162,6 +188,113 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["host"]
         }
+      },
+      // Add new device control tools
+      {
+        name: "tap",
+        description: "Tap on device screen",
+        inputSchema: {
+          type: "object",
+          properties: {
+            serial: {
+              type: "string",
+              description: "Device serial number"
+            },
+            x: {
+              type: "number",
+              description: "X coordinate"
+            },
+            y: {
+              type: "number",
+              description: "Y coordinate"
+            }
+          },
+          required: ["serial", "x", "y"]
+        }
+      },
+      {
+        name: "swipe",
+        description: "Swipe on device screen",
+        inputSchema: {
+          type: "object",
+          properties: {
+            serial: {
+              type: "string",
+              description: "Device serial number"
+            },
+            startX: {
+              type: "number",
+              description: "Start X coordinate"
+            },
+            startY: {
+              type: "number",
+              description: "Start Y coordinate"
+            },
+            endX: {
+              type: "number",
+              description: "End X coordinate"
+            },
+            endY: {
+              type: "number",
+              description: "End Y coordinate"
+            }
+          },
+          required: ["serial", "startX", "startY", "endX", "endY"]
+        }
+      },
+      {
+        name: "input_text",
+        description: "Input text on device",
+        inputSchema: {
+          type: "object",
+          properties: {
+            serial: {
+              type: "string",
+              description: "Device serial number"
+            },
+            text: {
+              type: "string",
+              description: "Text to input"
+            }
+          },
+          required: ["serial", "text"]
+        }
+      },
+      {
+        name: "press_key",
+        description: "Press a key on device",
+        inputSchema: {
+          type: "object",
+          properties: {
+            serial: {
+              type: "string",
+              description: "Device serial number"
+            },
+            keycode: {
+              type: "string",
+              description: "Android keycode (e.g. KEYCODE_HOME)"
+            }
+          },
+          required: ["serial", "keycode"]
+        }
+      },
+      {
+        name: "take_screenshot",
+        description: "Take a screenshot of device screen",
+        inputSchema: {
+          type: "object",
+          properties: {
+            serial: {
+              type: "string",
+              description: "Device serial number"
+            },
+            path: {
+              type: "string",
+              description: "Path to save the screenshot"
+            }
+          },
+          required: ["serial", "path"]
+        }
       }
     ]
   };
@@ -191,6 +324,72 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [{
           type: "text",
           text: `Disconnected from device at ${host}`
+        }]
+      };
+    }
+
+    case "tap": {
+      const { serial, x, y } = request.params.arguments as { serial: string; x: number; y: number };
+      const { inputController } = getDeviceControllers(serial);
+      await inputController.tap(x, y);
+      return {
+        content: [{
+          type: "text",
+          text: `Tapped at (${x}, ${y}) on device ${serial}`
+        }]
+      };
+    }
+
+    case "swipe": {
+      const { serial, startX, startY, endX, endY } = request.params.arguments as {
+        serial: string;
+        startX: number;
+        startY: number;
+        endX: number;
+        endY: number;
+      };
+      const { inputController } = getDeviceControllers(serial);
+      await inputController.swipe(startX, startY, endX, endY);
+      return {
+        content: [{
+          type: "text",
+          text: `Swiped from (${startX}, ${startY}) to (${endX}, ${endY}) on device ${serial}`
+        }]
+      };
+    }
+
+    case "input_text": {
+      const { serial, text } = request.params.arguments as { serial: string; text: string };
+      const { inputController } = getDeviceControllers(serial);
+      await inputController.inputText(text);
+      return {
+        content: [{
+          type: "text",
+          text: `Input text "${text}" on device ${serial}`
+        }]
+      };
+    }
+
+    case "press_key": {
+      const { serial, keycode } = request.params.arguments as { serial: string; keycode: string };
+      const { inputController } = getDeviceControllers(serial);
+      await inputController.pressKey(keycode);
+      return {
+        content: [{
+          type: "text",
+          text: `Pressed key ${keycode} on device ${serial}`
+        }]
+      };
+    }
+
+    case "take_screenshot": {
+      const { serial, path } = request.params.arguments as { serial: string; path: string };
+      const { deviceController } = getDeviceControllers(serial);
+      const outputPath = await deviceController.takeScreenshot(path);
+      return {
+        content: [{
+          type: "text",
+          text: `Screenshot saved to ${outputPath}`
         }]
       };
     }
