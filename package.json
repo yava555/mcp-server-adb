@@ -1,0 +1,28 @@
+{
+  "name": "mcp-server-adb",
+  "version": "1.0.0",
+  "description": "MCP Server for Android Debug Bridge",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-specifier-resolution=node build/test.js",
+    "start": "node --experimental-specifier-resolution=node build/index.js",
+    "inspector": "mcp-inspector"
+  },
+  "keywords": [
+    "mcp",
+    "adb",
+    "android"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.7.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0"
+  }
+}
