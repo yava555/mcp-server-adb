@@ -1,177 +1,107 @@
-# MCP Server for Android Debug Bridge
+# mcp-server-adb
 
-这是一个基于 Model Context Protocol (MCP) 的服务器，用于控制和管理 Android 设备。通过该服务器，你可以使用 MCP 协议来执行各种 Android 设备操作。
+A Model Context Protocol server for Android Debug Bridge (ADB) control
 
-## 功能特性
+This is a TypeScript-based MCP server that implements an ADB control system. It allows AI assistants to interact with Android devices through ADB commands, providing:
 
-### Resources (资源)
-- `device://list` - 列出所有已连接的 Android 设备
-- `device://{serial}/info` - 获取特定设备的详细信息
-- `device://{serial}/packages` - 获取设备上安装的应用列表
-- `device://{serial}/screenshot` - 获取设备的屏幕截图
+- Resources for device discovery and information
+- Tools for device control and app management
+- Prompts for device analysis and diagnostics
 
-### Tools (工具)
+## Features
 
-**设备控制**
-- `connect_device` - 连接指定设备
-- `disconnect_device` - 断开设备连接
+### Resources
+- List connected devices via `device://list`
+- Access device information via `device://{serial}/info`
+- View installed packages via `device://{serial}/packages`
+- Capture screenshots via `device://{serial}/screenshot`
 
-**设备操作**
-- `tap` - 点击屏幕
-- `swipe` - 滑动屏幕
-- `input_text` - 输入文本
-- `press_key` - 按键操作
-- `take_screenshot` - 截图
+### Tools
+**Device Control**
+- `connect_device` - Connect to a specified device
+- `disconnect_device` - Disconnect from a device
 
-**应用管理（即将推出）**
-- `install_app` - 安装 APK
-- `uninstall_app` - 卸载应用
-- `start_app` - 启动应用
-- `stop_app` - 停止应用
+**Device Operations**
+- `tap` - Tap on the screen
+- `swipe` - Swipe on the screen
+- `input_text` - Input text
+- `press_key` - Press a key
+- `take_screenshot` - Take a screenshot
 
-### Prompts (提示)
-- `analyze_device` - 分析设备状态和信息
-- `analyze_app_list` - 分析已安装应用列表（即将推出）
-- `analyze_screen` - 分析当前屏幕内容（即将推出）
+**Application Management (Coming Soon)**
+- `install_app` - Install APK
+- `uninstall_app` - Uninstall application
+- `start_app` - Launch application
+- `stop_app` - Stop application
 
-## 系统要求
+### Prompts
+- `analyze_device` - Analyze device status and specifications
+- `analyze_app_list` - Analyze installed applications
+- `analyze_screen` - Analyze current screen content
 
-- Node.js >= 18
-- Android Debug Bridge (adb) 已安装并配置在系统路径中
-- 支持的操作系统：macOS, Linux, Windows
+## Prerequisites
 
-## 安装
+- Node.js 16 or higher
+- Android Debug Bridge (ADB) installed and available in PATH
+- Android device with USB debugging enabled or network ADB enabled
 
-1. 克隆仓库：
-```bash
-git clone [repository-url]
-cd mcp-server-adb
-```
+## Development
 
-2. 安装依赖：
+Install dependencies:
 ```bash
 npm install
 ```
 
-3. 构建项目：
+Build the server:
 ```bash
 npm run build
 ```
 
-## 使用方法
-
-1. 确保 ADB 已经正确安装并可以在命令行中使用：
+For development with auto-rebuild:
 ```bash
-adb version
+npm run watch
 ```
 
-2. 启动服务器：
+## Installation
+
+To use with Claude Desktop, add the server config:
+
+On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "mcp-server-adb": {
+      "command": "/path/to/mcp-server-adb/build/index.js"
+    }
+  }
+}
+```
+
+### Debugging
+
+Since MCP servers communicate over stdio, debugging can be challenging. We recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector), which is available as a package script:
+
 ```bash
-npm start
+npm run inspector
 ```
 
-### 工具使用示例
+The Inspector will provide a URL to access debugging tools in your browser.
 
-**连接设备**
-```json
-{
-  "name": "connect_device",
-  "arguments": {
-    "host": "192.168.1.100:5555"
-  }
-}
-```
+### Device Setup
 
-**点击屏幕**
-```json
-{
-  "name": "tap",
-  "arguments": {
-    "serial": "device_serial",
-    "x": 100,
-    "y": 200
-  }
-}
-```
+1. Enable USB debugging on your Android device:
+    - Go to Settings > About phone
+    - Tap "Build number" 7 times to enable Developer options
+    - Go to Settings > Developer options
+    - Enable "USB debugging"
 
-**滑动屏幕**
-```json
-{
-  "name": "swipe",
-  "arguments": {
-    "serial": "device_serial",
-    "startX": 100,
-    "startY": 200,
-    "endX": 300,
-    "endY": 400
-  }
-}
-```
+2. For network debugging:
+    - Connect device via USB first
+    - Enable "Wireless debugging" in Developer options
+    - Use `connect_device` tool with the device's IP address
 
-**输入文本**
-```json
-{
-  "name": "input_text",
-  "arguments": {
-    "serial": "device_serial",
-    "text": "Hello World"
-  }
-}
-```
+## License
 
-**按键操作**
-```json
-{
-  "name": "press_key",
-  "arguments": {
-    "serial": "device_serial",
-    "keycode": "KEYCODE_HOME"
-  }
-}
-```
-
-**截图**
-```json
-{
-  "name": "take_screenshot",
-  "arguments": {
-    "serial": "device_serial",
-    "path": "./screenshots/screen.png"
-  }
-}
-```
-
-## 开发
-
-### 项目结构
-```
-src/
-├── index.ts              // 主入口文件
-├── adb/
-│   ├── client.ts        // ADB 客户端封装
-│   ├── commands.ts      // ADB 命令集
-│   └── utils.ts         // 工具函数
-├── resources/
-│   ├── devices.ts       // 设备资源处理
-│   ├── packages.ts      // 应用资源处理
-│   └── screenshots.ts   // 截图资源处理
-├── tools/
-│   ├── device.ts        // 设备控制工具
-│   ├── app.ts          // 应用管理工具
-│   └── input.ts        // 输入控制工具
-└── prompts/
-    └── analyzers.ts     // 分析器提示
-```
-
-### 构建和测试
-```bash
-# 构建项目
-npm run build
-
-# 运行测试
-npm test
-```
-
-## 许可证
-
-MIT License
+MIT
